@@ -1,3 +1,4 @@
+drop database SATserver;
 CREATE DATABASE SATserver;
 USE SATserver;
 CREATE TABLE GlobalInformation(
@@ -53,12 +54,13 @@ CREATE TABLE SATproblems(
     PRIMARY KEY (ProblemId, Difficulty, ProblemType)
 );
 CREATE TABLE ProblemSubmissionLink(
-	SubmissionId       BIGINT           NOT NULL,
-	ProblemId          BIGINT           NOT NULL,
-    ProblemIndex       INT              NOT NULL,
+	SubmissionId       BIGINT                   NOT NULL,
+	ProblemId          BIGINT                   NOT NULL,
+    ProblemIndex       INT                      NOT NULL,
     /*ProblemIndex: the index of that problem in a module*/
-    ProblemPoint       INT              NOT NULL,
-    Module             ENUM('1', '2')   NOT NULL,
+    ProblemPoint       INT                      NOT NULL,
+    Module             ENUM('1', '2')           NOT NULL,
+    UserAnswer         ENUM('A', 'B', 'C', 'D'), 
     FOREIGN KEY (SubmissionId)
 		REFERENCES UserSubmissions(SubmissionId)
         ON DELETE CASCADE
