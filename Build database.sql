@@ -1,9 +1,17 @@
 CREATE DATABASE SATserver;
 USE SATserver;
+CREATE TABLE GlobalInformation(
+	EasyEnglishProblemsCount    INT     NOT NULL,
+    MediumEnglishProblemsCount  INT     NOT NULL,
+    HardEnglishProblemsCount    INT     NOT NULL,
+	EasyMathProblemsCount       INT     NOT NULL,
+    MediumMathProblemsCount     INT     NOT NULL,
+    HardMathProblemsCount       INT     NOT NULL
+);
 CREATE TABLE AccountInformation(
 	Username                   VARCHAR(20)   NOT NULL,
     Registered_date            DATETIME      NOT NULL,
-    User_password              VARCHAR(50)    NOT NULL,
+    User_password              VARCHAR(50)   NOT NULL,
     EasyEnglishProblemsCount   INT           NOT NULL,
     MediumEnglishProblemsCount INT           NOT NULL,
 	HardEnglishProblemsCount   INT           NOT NULL,
@@ -33,7 +41,7 @@ CREATE TABLE UserSubmissions(
 CREATE TABLE SATproblems(
 	/*Each SAT problem will be fetched to this table*/
     /*This database is not designed to be able to delete a problem from this table*/
-	ProblemId          BIGINT                          NOT NULL   PRIMARY KEY  AUTO_INCREMENT,
+	ProblemId          BIGINT                          NOT NULL,
     Difficulty         ENUM('Easy', 'Medium', 'Hard')  NOT NULL,
     ProblemType        ENUM('English', 'Math')         NOT NULL,
     ProblemDescription MEDIUMTEXT                      NOT NULL,
@@ -41,7 +49,8 @@ CREATE TABLE SATproblems(
     ChoiceB            TEXT                            NOT NULL,
     ChoiceC            TEXT                            NOT NULL,
     ChoiceD            TEXT                            NOT NULL,
-    CorrectAnswer      ENUM('A', 'B', 'C', 'D')        NOT NULL
+    CorrectAnswer      ENUM('A', 'B', 'C', 'D')        NOT NULL,
+    PRIMARY KEY (ProblemId, Difficulty, ProblemType)
 );
 CREATE TABLE ProblemSubmissionLink(
 	SubmissionId       BIGINT           NOT NULL,
