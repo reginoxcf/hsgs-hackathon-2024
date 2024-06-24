@@ -1,13 +1,18 @@
 # hsgs-hackathon-2024
 project nha tre -> dung [OpenRouter](https://openrouter.ai/)
 
-credit: everyone ngoai toi :))
+# Requirements:
+- node 20.15.0+
+- npm 10.7.0+
+- mysql
 
-features:
+credit: everyone :))
+
+# Features:
 
 - [x] create account (use function CreateAccount(username,password)
 
-to do:
+# To do:
 
 - [ ] login account (LoginAccount(username,password))
 - [ ] delete account (DeleteAccount(username,password))
