@@ -37,7 +37,7 @@ function CreateAccount(username, password){
     })
     return 0;
 }
-
+//test code
 __init();
 CreateAccount("ad", "1");
 CreateAccount("min", "2");
