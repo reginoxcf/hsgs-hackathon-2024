@@ -1,5 +1,6 @@
 const { query } = require('express');
 var mydb = require('mysql');
+var ProblemId = 0;
 
 var myServer = mydb.createConnection({
     host: "localhost",
@@ -66,7 +67,7 @@ function AddProblem(Difficulty, ProblemType, ProblemDescription, ChoiceA, Choice
     var ProblemCategory = Difficulty + ProblemType + `ProblemsCount`;
     var queryCode = `SELECT ` + ProblemCategory + ` FROM GlobalInformation;`;
     
-    var ProblemId = 1;
+    ++ProblemId;
     //Calculate new problem's id
     myServer.query(queryCode, function(err, result, fields){
         if(err || result.length == 0){
@@ -85,7 +86,8 @@ function AddProblem(Difficulty, ProblemType, ProblemDescription, ChoiceA, Choice
         }
     });
     //Insert the problem to the database
-    queryCode = 'INSERT INTO SATproblems VALUES (' + ProblemId + ',"' + Difficulty + `","` + ProblemType + '","' + ProblemDescription + '","' + ChoiceA + '","' + ChoiceB + '","' + ChoiceC + '","' + ChoiceD + `");`;
+    queryCode = 'INSERT INTO SATproblems VALUES (' + ProblemId + ',"' + Difficulty + `","` + ProblemType + '","' + ProblemDescription + '","' + ChoiceA + '","' + ChoiceB + '","' + ChoiceC + '","' + ChoiceD + '","' + CorrectAnswer + `");`;
+    // console.log(queryCode);
     myServer.query(queryCode, function(err, result){
         if(err){
             console.log("Database error while adding problem"); //This should never happen
@@ -112,7 +114,7 @@ function CreateNewSubmission(StudentUsername){
     queryCode = `INSERT INTO UserSubmissions (StudentUsername, StartedTime, CurrentPart, PartBeginTime) VALUES ("` + StudentUsername + '","' + StartedTime.toISOString().slice(0, 19).replace('T', ' ') + '","1","' + PartBeginTime.toISOString().slice(0, 19).replace('T', ' ') + ");";
     myServer.query(queryCode, function(err, result){
         if(err){
-            console.log("Database error while creating new submissiong"); //This should never happen
+            console.log("Database error while creating new submission"); //This should never happen
             return 1; //Error
         }
         else console.log("New submission created successfully");
@@ -137,4 +139,6 @@ function ChangeSubmissionPart(SubmissionId)
 
 // __init()
 // CreateAccount("admin","8080")
-// LoginPasswordVerify("admin","8081")
+// LoginPasswordVerify("admin","8080")
+// AddProblem("Easy", "Math", "What is 1+1?", "5", "3", "2", "6", "C")
+// AddProblem("Easy", "Math", "What is 1+2?", "5", "3", "2", "6", "B")
