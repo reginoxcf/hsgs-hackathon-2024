@@ -1,10 +1,10 @@
 # hsgs-hackathon-2024
-project nha tre -> dung [OpenRouter](https://openrouter.ai/)
+hsgs hackathon project using [OpenRouter](https://openrouter.ai/)
 
 # Requirements:
 - node 20.15.0+
 - npm 10.7.0+
-- mysql
+- mysql server (just install the entire suite)
 
 credit: everyone :))
 
@@ -14,9 +14,9 @@ credit: everyone :))
 
 # To do:
 
-- [ ] login account (LoginAccount(username,password))
+- [x] login account (LoginAccount(username,password))
 - [ ] delete account (DeleteAccount(username,password))
 - [ ] add problem (AddProblem(problemType,difficulty,problemDescription,choiceA,choiceB,choiceC,choiceD,correctAnswer))
 - [ ] fetch problem (FetchProblem(username,problemType,difficulty))
-- [ ] show submissions (ShowSubmissions(username)) (co the co fitler??)
+- [ ] show submissions (ShowSubmissions(username))
 
