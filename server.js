@@ -1,4 +1,5 @@
 const { query } = require('express');
+const crypto = require('crypto');
 var mydb = require('mysql');
 
 var myServer = mydb.createConnection({
@@ -32,9 +33,8 @@ function PromisedQuery(queryString, ErrMessage, SuccessMessage) {
 }
 
 function HashFunction(input){
-    //Currently it's the identity function. It could be changed to other cryptographic hash functions 
-    //such as SHA-256 in the future
-    return input;
+    const hash = crypto.createHash('sha256').update(input).digest('hex');
+    return hash;
 }
 
 async function __init(){
@@ -52,15 +52,16 @@ async function __init(){
         return 1; //Error
     }
 }
+
 async function CreateAccount(username, password){
     //We expect the username has no more than 20 characters
     var currentTime = new Date();
-    if(myServer.query("SELECT * FROM AccountInformation WHERE Username = '" + username + "';")){
-        console.log("Account with username '" + username + "' already registered");
+    var queryCode = 'INSERT INTO AccountInformation VALUES ("' + username + '","' + currentTime.toISOString().slice(0, 19).replace('T', ' ') + '","' + HashFunction(password) + '",0,0,0,0,0,0);';
+    try{
+        await PromisedQuery(queryCode, "Failed to create new account (account may have already existed)", "Account created successfully")
     }
-    else{
-        var queryCode = 'INSERT INTO AccountInformation VALUES ("' + username + '","' + currentTime.toISOString().slice(0, 19).replace('T', ' ') + '","' + HashFunction(password) + '",0,0,0,0,0,0);'; 
-        PromisedQuery(queryCode, "Account creation failed", "Account created successfully");
+    catch(err){
+        return 1; //Error
     }
 }
 
@@ -68,18 +69,20 @@ async function LoginPasswordVerify(username, password){
     var queryCode = `SELECT User_password FROM AccountInformation WHERE Username = "` + username + `";`;
     var hashpw;
     try{
-        hashpw = await PromisedQuery(queryCode, `Invalid username or password`,"Login successfully");
+        hashpw = await PromisedQuery(queryCode, `Invalid username or password`,"Valid username");
     }
     catch(err){
         return 1; //Error
     }
-    if(hashpw != password){
+    if(hashpw.length == 0 || hashpw[0].User_password != HashFunction(password)){
         console.log("Wrong password");
         return 0;
     }
-    else return 1;
+    else{
+        console.log("Login successful");
+        return 1;
+    }
 }
-
 
 async function AddProblem(Difficulty, ProblemType, ProblemDescription, ChoiceA, ChoiceB, ChoiceC, ChoiceD, CorrectAnswer){
     var ProblemCategory = Difficulty + ProblemType + `ProblemsCount`;
@@ -133,7 +136,8 @@ async function CreateNewSubmission(StudentUsername){
         return 1; //Error
     }
     //Create a new submission
-    queryCode = `INSERT INTO UserSubmissions (StudentUsername, StartedTime, CurrentPart, PartBeginTime) VALUES ("` + StudentUsername + '","' + StartedTime.toISOString().slice(0, 19).replace('T', ' ') + '","1","' + PartBeginTime.toISOString().slice(0, 19).replace('T', ' ') + ");";
+    queryCode = `INSERT INTO UserSubmissions (StudentUsername, StartedTime, CurrentPart, PartBeginTime) VALUES ("` + StudentUsername + '","' + StartedTime.toISOString().slice(0, 19).replace('T', ' ') + '","1","' + PartBeginTime.toISOString().slice(0, 19).replace('T', ' ') + `");`;
+    // console.log(queryCode);
     try{
         sus = await PromisedQuery(queryCode, "Database error while creating new submission", "New submission created successfully");
     }
@@ -203,7 +207,8 @@ async function CreateLinkBetweenProblemAndSubmission(SubmissionId, Difficulty, P
         AddProblem(NewProblem.Difficulty, NewProblem.ProblemType, NewProblem.ProblemDescription, NewProblem.ChoiceA, NewProblem.ChoiceB, NewProblem.ChoiceC, NewProblem.ChoiceD, NewProblem.CorrectAnswer);
     }
     //Create link
-    queryCode = `INSERT INTO ProblemSubmissionLink(SubmissionId, ProblemId, ProblemIndex, ProblemPoint, Module) VALUES (` + SubmissionId + `,` + ProblemId + `,` + ProblemIndex + `,` + ProblemPoint + `,"` + Module + `);`;
+    queryCode = `INSERT INTO ProblemSubmissionLink(SubmissionId, ProblemId, ProblemIndex, ProblemPoint, Module) VALUES (` + SubmissionId + `,` + ProblemId + `,` + ProblemIndex + `,` + ProblemPoint + `,` + Module + `);`;
+    // console.log(queryCode);
     try{
         let sus = await PromisedQuery(queryCode, "Server error while creating link", "Link created successfully");
     }
@@ -244,9 +249,12 @@ async function main()
 {
     let sus = await __init();
     sus = await CreateAccount("admin","8080");
-    sus = await CreateAccount("admin","8080");
-    //sus = await AddProblem("Easy", "Math", "What is 1+1?", "5", "3", "2", "6", "C");
-    //sus = await AddProblem("Easy", "Math", "What is 1+2?", "5", "3", "2", "6", "B");
+    sus = await LoginPasswordVerify("admin","8080");
+    sus = await AddProblem("Easy", "Math", "What is 1+1?", "5", "3", "2", "6", "C");
+    sus = await AddProblem("Easy", "Math", "What is 1+2?", "5", "3", "2", "6", "B");
+    sus = await CreateNewSubmission("admin");
+    sus = await ChangeSubmissionPart(1);
+    sus = await CreateLinkBetweenProblemAndSubmission(1, "Easy", "Math", 1, 1, 1);
 }
 
 main();
