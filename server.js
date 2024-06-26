@@ -30,11 +30,13 @@ function PromisedQuery(queryString, ErrMessage, SuccessMessage) {
         }
     });
 }
+
 function HashFunction(input){
     //Currently it's the identity function. It could be changed to other cryptographic hash functions 
     //such as SHA-256 in the future
     return input;
 }
+
 async function __init(){
     let sus;
     try{
@@ -53,12 +55,12 @@ async function __init(){
 async function CreateAccount(username, password){
     //We expect the username has no more than 20 characters
     var currentTime = new Date();
-    var queryCode = 'INSERT INTO AccountInformation VALUES ("' + username + '","' + currentTime.toISOString().slice(0, 19).replace('T', ' ') + '","' + HashFunction(password) + '",0,0,0,0,0,0);'; 
-    try{
-        await PromisedQuery(queryCode, "Failed to create new account", "Account created successfully")
+    if(myServer.query("SELECT * FROM AccountInformation WHERE Username = '" + username + "';")){
+        console.log("Account with username '" + username + "' already registered");
     }
-    catch(err){
-        return 1; //Error
+    else{
+        var queryCode = 'INSERT INTO AccountInformation VALUES ("' + username + '","' + currentTime.toISOString().slice(0, 19).replace('T', ' ') + '","' + HashFunction(password) + '",0,0,0,0,0,0);'; 
+        PromisedQuery(queryCode, "Account creation failed", "Account created successfully");
     }
 }
 
@@ -237,6 +239,7 @@ async function ChangeSubmissionPart(SubmissionId)
         return 1; //Error
     }
 }
+
 async function main()
 {
     let sus = await __init();
@@ -245,4 +248,5 @@ async function main()
     //sus = await AddProblem("Easy", "Math", "What is 1+1?", "5", "3", "2", "6", "C");
     //sus = await AddProblem("Easy", "Math", "What is 1+2?", "5", "3", "2", "6", "B");
 }
+
 main();
