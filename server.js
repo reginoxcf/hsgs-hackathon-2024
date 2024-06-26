@@ -11,8 +11,6 @@ myServer.connect(function (err) {
     if(err) console.log(err);
     else console.log("MySQL connected");
 }); 
-  
-/* All functions from here until line 59 have been tested */
 
 function HashFunction(input){
     //Currently it's the identity function. It could be changed to other cryptographic hash functions 
@@ -134,6 +132,7 @@ function FetchNewProblem(Difficulty, ProblemType){
     /*For the server to run properly, this function should have something instead of nothing :)))*/
     return 0;
 }
+
 function CreateLinkBetweenProblemAndSubmission(SubmissionId, Difficulty, ProblemType, ProblemIndex, ProblemPoint, Module){
     //Check if submissionID is valid or not
     var queryCode = `SELECT * FROM UserSubmissions WHERE SubmissionId = "` + SubmissionId + `";`;
@@ -197,10 +196,31 @@ function CreateLinkBetweenProblemAndSubmission(SubmissionId, Difficulty, Problem
         else console.log("Link created successfully");
     });
 }
+
 function ChangeSubmissionPart(SubmissionId)
 {
     //Check if the Id is valid or not. Check if the submission is in part 6 or not
+    var queryCode = `SELECT CurrentPart FROM UserSubmissions WHERE SubmissionId = "` + SubmissionId + `";`;
+    var CurrentPart = 0;
+    myServer.query(queryCode, function(err, result){
+        if(err || result.length == 0){
+            console.log("Invalid SubmissionId or server error"); //This should never happen
+            return 1; //Error
+        }
+        else if(result[0].CurrentPart == `6`) console.log("Already ended test");
+        else CurrentPart = parseInt(result[0].CurrentPart)+1;
+    });
     //Update CurrentPart and PartBeginTime correspondingly
+    var StartedTime = new Date();
+    queryCode = `UPDATE UserSubmissions SET CurrentPart = ` + CurrentPart + `, PartBeginTime = "` + StartedTime.toISOString().slice(0, 19).replace('T', ' ') + `" WHERE SubmissionId = ` SubmissionId + `;`;
+    myServer.query(queryCode, function(err, result){
+        if(err){
+            console.log("Server error while updating SubmissionPart");
+            return 1;
+        }
+        else console.log("Change submission part successfully");
+    });
+    return 0;
 }
 
 // __init()
