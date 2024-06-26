@@ -2,14 +2,15 @@
 hsgs hackathon project using [OpenRouter](https://openrouter.ai/)
 
 # Requirements:
-- node 20.15.0+
-- npm 10.7.0+
+- [NodeJS 20.15.0+](https://nodejs.org/en) 
+- npm 10.7.0+ (bundled with Nodejs)
   + nodemon 3.1.4+
   + mysql 2.18.1+
   + express 4.19.2+
-- mysql server (just install the entire suite)
+  + crypto 1.0.1+
+- [MySQL](https://dev.mysql.com/downloads/installer/) (Windows only, haven't figured how to run on Linux yet) 
 
-credit: everyone :))
+credits: everyone :))
 
 # Features:
 
