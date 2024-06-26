@@ -6,24 +6,28 @@ var myServer = mydb.createConnection({
     user: "root",
     password: "password" /*Write the database's password*/ 
 });
-
 myServer.connect(err => {
     if(err) console.log("Connection failed");
     else console.log("Connected");
 });
 
-async function PromisedQuery(queryString, ErrMessage, SuccessMessage) {
+function PromisedQuery(queryString, ErrMessage, SuccessMessage) {
     return new Promise((resolve, reject) => {
-        myServer.query(queryString, function(err, result){
-            if(err){
-                console.log(ErrMessage);
-                reject(err);
-            }
-            else{
-                console.log(SuccessMessage);
-                resolve(result);
-            }
-        });
+        try {
+            myServer.query(queryString, function(err, result){
+                if(err){
+                    console.log(ErrMessage);
+                    reject(err);
+                }
+                else{
+                    console.log(SuccessMessage);
+                    resolve(result);
+                }
+            });
+        }
+        catch(err){
+            return; //Error
+        }
     });
 }
 
@@ -34,12 +38,22 @@ function HashFunction(input){
 }
 
 async function __init(){
-    await PromisedQuery("USE SATserver;", "Error while connecting to the database", "Database connected");
-    await PromisedQuery("INSERT INTO GlobalInformation VALUES (0, 0, 0, 0, 0, 0);", "Error while initializing", "Initialization finished");
+    let sus;
+    try{
+        sus = await PromisedQuery("USE SATserver;", "Error while connecting to the database", "Database connected");
+    }    
+    catch (err){
+        return 1; //Error
+    }
+    try{
+        sus = await PromisedQuery("INSERT INTO GlobalInformation VALUES (0, 0, 0, 0, 0, 0);", "Error while initializing", "Initialization finished");
+    }
+    catch(err){
+        return 1; //Error
+    }
 }
-
 async function CreateAccount(username, password){
-    //We expect the username to have no more than 20 characters
+    //We expect the username has no more than 20 characters
     var currentTime = new Date();
     if(myServer.query("SELECT * FROM AccountInformation WHERE Username = '" + username + "';")){
         console.log("Account with username '" + username + "' already registered");
@@ -52,7 +66,18 @@ async function CreateAccount(username, password){
 
 async function LoginPasswordVerify(username, password){
     var queryCode = `SELECT User_password FROM AccountInformation WHERE Username = "` + username + `";`;
-    PromisedQuery(queryCode, `Invalid username or password`,"Login successfully");
+    var hashpw;
+    try{
+        hashpw = await PromisedQuery(queryCode, `Invalid username or password`,"Login successfully");
+    }
+    catch(err){
+        return 1; //Error
+    }
+    if(hashpw != password){
+        console.log("Wrong password");
+        return 0;
+    }
+    else return 1;
 }
 
 
@@ -62,7 +87,12 @@ async function AddProblem(Difficulty, ProblemType, ProblemDescription, ChoiceA, 
     
     var ProblemId = 1;
     //Calculate new problem's id
-    var result = await PromisedQuery(queryCode, "Global information table error while adding problem", "");
+    try{
+        var result = await PromisedQuery(queryCode, "Global information table error while adding problem", "");
+    }
+    catch(err){
+        return 1; //Error
+    }
     //console.log(result);
     switch (ProblemCategory){
         case 'EasyEnglishProblemsCount': ProblemId += result[0].EasyEnglishProblemsCount; break;
@@ -74,11 +104,21 @@ async function AddProblem(Difficulty, ProblemType, ProblemDescription, ChoiceA, 
     }
     //Insert the problem to the database
     queryCode = 'INSERT INTO SATproblems VALUES (' + ProblemId + ',"' + Difficulty + `","` + ProblemType + '","' + ProblemDescription + '","' + ChoiceA + '","' + ChoiceB + '","' + ChoiceC + '","' + ChoiceD + '","' + CorrectAnswer + `");`;
-    PromisedQuery(queryCode, "Database error while adding problem", "Problem added successfully");
+    try{
+        let sus = PromisedQuery(queryCode, "Database error while adding problem", "Problem added successfully");
+    }
+    catch(err){
+        return 1; //Error
+    }
     // console.log(queryCode);
     //Recalculate the variable in GlobalInformation
     queryCode = `UPDATE GlobalInformation SET ` + ProblemCategory + ' = ' + ProblemId + `;`;
-    PromisedQuery(queryCode, "Database error while editing GlobalInformation variable", "Information updated successfully");
+    try{
+        sus = await PromisedQuery(queryCode, "Database error while editing GlobalInformation variable", "Information updated successfully");
+    }
+    catch(err){
+        return 1; //Error
+    }
 }
 
 async function CreateNewSubmission(StudentUsername){
@@ -86,34 +126,24 @@ async function CreateNewSubmission(StudentUsername){
     var StartedTime = new Date();
     var PartBeginTime = StartedTime;
     var queryCode = `SELECT User_password FROM AccountInformation WHERE Username = "` + StudentUsername + `";`;
-    PromisedQuery(queryCode, "Invalid username", "Valid username. Creating new submission");
-    //Create a new submission
-    queryCode = `INSERT INTO UserSubmissions (StudentUsername, StartedTime, CurrentPart, PartBeginTime) VALUES ("` + StudentUsername + '","' + StartedTime.toISOString().slice(0, 19).replace('T', ' ') + '","1","' + PartBeginTime.toISOString().slice(0, 19).replace('T', ' ') + '");';
-    PromisedQuery(queryCode, "Database error while creating new submission", "New submission created successfully");
-}
-
-async function ChangeSubmissionPart(SubmissionId)
-{
-    //Check if the Id is valid or not. Check if the submission is in part 6 or not
-    var queryCode = `SELECT CurrentPart FROM UserSubmissions WHERE SubmissionId = "` + SubmissionId + `";`;
-    var CurrentPart = 0;
-    var result = await PromisedQuery(queryCode, "Invalid SubmissionId or server error", "");
-    if(result.length == 0){
-        console.log("Invalid SubmissionId or server error");
+    try{
+        let sus = await PromisedQuery(queryCode, "Invalid username", "Valid username. Creating new submission");
+    }
+    catch(err){
         return 1; //Error
     }
-    else if(result[0].CurrentPart == `6`) console.log("Already ended test");
-    else CurrentPart = parseInt(result[0].CurrentPart)+1;
-    //Update CurrentPart and PartBeginTime correspondingly
-    var StartedTime = new Date();
-    queryCode = `UPDATE UserSubmissions SET CurrentPart = ` + CurrentPart + `, PartBeginTime = "` + StartedTime.toISOString().slice(0, 19).replace('T', ' ') + `" WHERE SubmissionId = ` + SubmissionId + `;`;
-    await PromisedQuery(queryCode, "Server error while updating SubmissionPart", "Change submission part successfully");
+    //Create a new submission
+    queryCode = `INSERT INTO UserSubmissions (StudentUsername, StartedTime, CurrentPart, PartBeginTime) VALUES ("` + StudentUsername + '","' + StartedTime.toISOString().slice(0, 19).replace('T', ' ') + '","1","' + PartBeginTime.toISOString().slice(0, 19).replace('T', ' ') + ");";
+    try{
+        sus = await PromisedQuery(queryCode, "Database error while creating new submission", "New submission created successfully");
+    }
+    catch(err){
+        return 1; //Error
+    }
 }
-
 /**/
 /*The "dangerous" boundary: All functions below haven't been tested (or even coded) yet*/ 
 /**/
-
 async function FetchNewProblem(Difficulty, ProblemType){
     /*This function is intentionally left blank, because we didn't have the code to fetch new problems from LLM yet*/
     /*For the server to run properly, this function should have something instead of nothing :)))*/
@@ -123,7 +153,12 @@ async function FetchNewProblem(Difficulty, ProblemType){
 async function CreateLinkBetweenProblemAndSubmission(SubmissionId, Difficulty, ProblemType, ProblemIndex, ProblemPoint, Module){
     //Check if submissionID is valid or not
     var queryCode = `SELECT * FROM UserSubmissions WHERE SubmissionId = "` + SubmissionId + `";`;
-    var result = await PromisedQuery(queryCode, "Error while finding submission (server error or invalid SubmissionId", "");
+    try{
+        var result = await PromisedQuery(queryCode, "Error while finding submission (server error or invalid SubmissionId", "");
+    }
+    catch(err){
+        return 1; //Error
+    }
     if(result.length == 0){
         console.log("Error while finding submission (server error or invalid SubmissionId");
         return 1; //Error
@@ -133,7 +168,12 @@ async function CreateLinkBetweenProblemAndSubmission(SubmissionId, Difficulty, P
     var ProblemCategory = Difficulty + ProblemType + `ProblemsCount`;
     queryCode = `SELECT ` + ProblemCategory + ` FROM AccountInformation WHERE Username = "` + username + '";';
     var ProblemId = 1, NumberOfProblemInDatabase = 0;
-    result = await PromisedQuery(queryCode, "Global information table error while creating link", "");
+    try{
+        result = await PromisedQuery(queryCode, "Global information table error while creating link", "");
+    }
+    catch(err){
+        return 1; //Error
+    }
     switch (ProblemCategory){
         case 'EasyEnglishProblemsCount': ProblemId += result[0].EasyEnglishProblemsCount; break;
         case 'MediumEnglishProblemsCount': ProblemId += result[0].MediumEnglishProblemsCount; break;
@@ -144,7 +184,12 @@ async function CreateLinkBetweenProblemAndSubmission(SubmissionId, Difficulty, P
     }
     //Calculate the number of problems (in that category) in the database
     queryCode = `SELECT ` + ProblemCategory + ` FROM GlobalInformation;`;
-    result = await PromisedQuery(queryCode, "Global information table error while creating link", "");
+    try{
+        result = await PromisedQuery(queryCode, "Global information table error while creating link", "");
+    }
+    catch(err){
+        return 1; //Error
+    }
     switch (ProblemCategory){
         case 'EasyEnglishProblemsCount': NumberOfProblemInDatabase = result[0].EasyEnglishProblemsCount; break;
         case 'MediumEnglishProblemsCount': NumberOfProblemInDatabase = result[0].MediumEnglishProblemsCount; break;
@@ -159,18 +204,49 @@ async function CreateLinkBetweenProblemAndSubmission(SubmissionId, Difficulty, P
     }
     //Create link
     queryCode = `INSERT INTO ProblemSubmissionLink(SubmissionId, ProblemId, ProblemIndex, ProblemPoint, Module) VALUES (` + SubmissionId + `,` + ProblemId + `,` + ProblemIndex + `,` + ProblemPoint + `,"` + Module + `);`;
-    await PromisedQuery(queryCode, "Server error while creating link", "Link created successfully");
+    try{
+        let sus = await PromisedQuery(queryCode, "Server error while creating link", "Link created successfully");
+    }
+    catch(err){
+        return 1; //Error
+    }
 }
 
-async function main() //Run program here
+async function ChangeSubmissionPart(SubmissionId)
+{
+    //Check if the Id is valid or not. Check if the submission is in part 6 or not
+    var queryCode = `SELECT CurrentPart FROM UserSubmissions WHERE SubmissionId = "` + SubmissionId + `";`;
+    var CurrentPart = 0;
+    try{
+        var result = await PromisedQuery(queryCode, "Invalid SubmissionId or server error", "");
+    }
+    catch(err){
+        return 1; //Error
+    }
+    if(result.length == 0){
+        console.log("Invalid SubmissionId or server error");
+        return 1; //Error
+    }
+    else if(result[0].CurrentPart == `6`) console.log("Already ended test");
+    else CurrentPart = parseInt(result[0].CurrentPart)+1;
+    //Update CurrentPart and PartBeginTime correspondingly
+    var StartedTime = new Date();
+    queryCode = `UPDATE UserSubmissions SET CurrentPart = ` + CurrentPart + `, PartBeginTime = "` + StartedTime.toISOString().slice(0, 19).replace('T', ' ') + `" WHERE SubmissionId = ` + SubmissionId + `;`;
+    try{
+        let sus = await PromisedQuery(queryCode, "Server error while updating SubmissionPart", "Change submission part successfully");
+    }
+    catch(err){
+        return 1; //Error
+    }
+}
+
+async function main()
 {
     let sus = await __init();
     sus = await CreateAccount("admin","8080");
-    sus = await LoginPasswordVerify("admin","8080");
-    sus = await AddProblem("Easy", "Math", "What is 1+1?", "5", "3", "2", "6", "C");
-    sus = await AddProblem("Easy", "Math", "What is 1+2?", "5", "3", "2", "6", "B");
-    sus = await CreateNewSubmission("admin");
-    sus = await ChangeSubmissionPart(1);
+    sus = await CreateAccount("admin","8080");
+    //sus = await AddProblem("Easy", "Math", "What is 1+1?", "5", "3", "2", "6", "C");
+    //sus = await AddProblem("Easy", "Math", "What is 1+2?", "5", "3", "2", "6", "B");
 }
 
 main();
