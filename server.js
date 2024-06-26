@@ -26,11 +26,13 @@ async function PromisedQuery(queryString, ErrMessage, SuccessMessage) {
         });
     });
 }
+
 function HashFunction(input){
     //Currently it's the identity function. It could be changed to other cryptographic hash functions 
     //such as SHA-256 in the future
     return input;
 }
+
 async function __init(){
     await PromisedQuery("USE SATserver;", "Error while connecting to the database", "Database connected");
     await PromisedQuery("INSERT INTO GlobalInformation VALUES (0, 0, 0, 0, 0, 0);", "Error while initializing", "Initialization finished");
@@ -160,7 +162,7 @@ async function CreateLinkBetweenProblemAndSubmission(SubmissionId, Difficulty, P
     await PromisedQuery(queryCode, "Server error while creating link", "Link created successfully");
 }
 
-async function main()
+async function main() //Run program here
 {
     let sus = await __init();
     sus = await CreateAccount("admin","8080");
