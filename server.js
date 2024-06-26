@@ -1,6 +1,5 @@
 const { query } = require('express');
 var mydb = require('mysql');
-var ProblemId = 0;
 
 var myServer = mydb.createConnection({
     host: "localhost",
@@ -59,15 +58,12 @@ function LoginPasswordVerify(username, password){
     return 0; //Success
 }
 
-/**/
-/*The "dangerous" boundary: All functions below haven't been tested (or even coded) yet*/ 
-/**/
 
 function AddProblem(Difficulty, ProblemType, ProblemDescription, ChoiceA, ChoiceB, ChoiceC, ChoiceD, CorrectAnswer){
     var ProblemCategory = Difficulty + ProblemType + `ProblemsCount`;
     var queryCode = `SELECT ` + ProblemCategory + ` FROM GlobalInformation;`;
     
-    ++ProblemId;
+    var ProblemId = 1;
     //Calculate new problem's id
     myServer.query(queryCode, function(err, result, fields){
         if(err || result.length == 0){
@@ -95,6 +91,15 @@ function AddProblem(Difficulty, ProblemType, ProblemDescription, ChoiceA, Choice
         }
         else console.log("Problem added successfully");
     });
+    //Recalculate the variable in GlobalInformation
+    queryCode = `UPDATE GlobalInformation SET ` + ProblemCategory + ' = ' ProblemId;
+    myServer.query(queryCode, function(err, result){
+        if(err){
+            console.log("Database error while editing GlobalInformation variable"); //This should never happen
+            return 1; //Error
+        }
+        else console.log("Information updated successfully");
+    });
     return 0;
 }
 
@@ -121,15 +126,76 @@ function CreateNewSubmission(StudentUsername){
     });
     return 0;
 }
+/**/
+/*The "dangerous" boundary: All functions below haven't been tested (or even coded) yet*/ 
+/**/
 function FetchNewProblem(Difficulty, ProblemType){
     /*This function is intentionally left blank, because we didn't have the code to fetch new problems from LLM yet*/
     /*For the server to run properly, this function should have something instead of nothing :)))*/
     return 0;
 }
 function CreateLinkBetweenProblemAndSubmission(SubmissionId, Difficulty, ProblemType, ProblemIndex, ProblemPoint, Module){
-    //Check if SubmissionId is valid or not
+    //Check if submissionID is valid or not
+    var queryCode = `SELECT * FROM UserSubmissions WHERE SubmissionId = "` + SubmissionId + `";`;
+    var username;
+    myServer.query(queryCode, function(err, result, fields){
+        if(err || result.length == 0){
+            console.log("Error while finding submission (server error or invalid SubmissionId");
+            return 1; //Error;
+        }
+        else username = result[0].StudentUsername;
+    });
     //Calculate ProblemId (fetch new problem if neccessary)
+    var ProblemCategory = Difficulty + ProblemType + `ProblemsCount`;
+    queryCode = `SELECT ` + ProblemCategory + ` FROM AccountInformation WHERE Username = "` + username + '";';
+    var ProblemId = 1, NumberOfProblemInDatabase = 0;
+    myServer.query(query, function(err, result, fields){
+        if(err || result.length == 0){
+            console.log("Global information table error while creating link"); //This should never happen
+            return 1; //Error
+        }
+        else{
+            switch (ProblemCategory){
+                case 'EasyEnglishProblemsCount': ProblemId += result[0].EasyEnglishProblemsCount;
+                case 'MediumEnglishProblemsCount': ProblemId += result[0].MediumEnglishProblemsCount;
+                case 'HardEnglishProblemsCount': ProblemId += result[0].HardEnglishProblemsCount;
+                case 'EasyMathProblemsCount': ProblemId += result[0].EasyMathProblemsCount;
+                case 'MediumMathProblemsCount': ProblemId += result[0].MediumMathProblemsCount;
+                default: ProblemId += result[0].HardMathProblemsCount;
+            }
+        }
+    });
+    //Calculate the number of problems (in that category) in the database
+    queryCode = `SELECT ` + ProblemCategory + ` FROM GlobalInformation;`;
+    myServer.query(queryCode, function(err, result, fields){
+        if(err || result.length == 0){
+            console.log("Global information table error while creating link"); //This should never happen
+            return 1; //Error
+        }
+        else{
+            switch (ProblemCategory){
+                case 'EasyEnglishProblemsCount': NumberOfProblemInDatabase = result[0].EasyEnglishProblemsCount;
+                case 'MediumEnglishProblemsCount': NumberOfProblemInDatabase = result[0].MediumEnglishProblemsCount;
+                case 'HardEnglishProblemsCount': NumberOfProblemInDatabase = result[0].HardEnglishProblemsCount;
+                case 'EasyMathProblemsCount': NumberOfProblemInDatabase = result[0].EasyMathProblemsCount;
+                case 'MediumMathProblemsCount': NumberOfProblemInDatabase = result[0].MediumMathProblemsCount;
+                default: NumberOfProblemInDatabase = result[0].HardMathProblemsCount;
+            }
+        }
+    });
+    if(ProblemId > NumberOfProblemInDatabase){
+        var NewProblem = FetchNewProblem(Difficulty, ProblemType); //Currently we shouldn't let this happen, because FetchNewProblem() isn't defined yet
+        AddProblem(NewProblem.Difficulty, NewProblem.ProblemType, NewProblem.ProblemDescription, NewProblem.ChoiceA, NewProblem.ChoiceB, NewProblem.ChoiceC, NewProblem.ChoiceD, NewProblem.CorrectAnswer);
+    }
     //Create link
+    queryCode = `INSERT INTO ProblemSubmissionLink(SubmissionId, ProblemId, ProblemIndex, ProblemPoint, Module) VALUES (` + SubmissionId + `,` + ProblemId + `,` + ProblemIndex + `,` + ProblemPoint + `,"` + Module + `);`;
+    myServer.query(queryCode, function(err, result){
+        if(err){
+            console.log("Server error while creating link"); //This should never happen
+            return 1; //Error
+        }
+        else console.log("Link created successfully");
+    });
 }
 function ChangeSubmissionPart(SubmissionId)
 {
