@@ -12,7 +12,7 @@ CREATE TABLE GlobalInformation(
 CREATE TABLE AccountInformation(
 	Username                   VARCHAR(20)   NOT NULL,
     Registered_date            DATETIME      NOT NULL,
-    User_password              VARCHAR(50)   NOT NULL,
+    User_password              VARCHAR(300)   NOT NULL,
     EasyEnglishProblemsCount   INT           NOT NULL,
     MediumEnglishProblemsCount INT           NOT NULL,
 	HardEnglishProblemsCount   INT           NOT NULL,
