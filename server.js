@@ -544,7 +544,7 @@ function temporaryContainer()
         response.send(status);
     });
 
-    app.get("/GenerateProblem", (request, response) => {
+    app.get("/GenerateProblemForSubmission", (request, response) => {
         var temp = CreateLinkBetweenProblemAndSubmission(request.SubmissionId, request.Difficulty, request.ProblemType, request.ProblemIndex, request.ProblemPoint, request.Module);
         if(temp == -1){
             const status = {
@@ -597,6 +597,23 @@ function temporaryContainer()
                 "ChoiceC": temp.ChoiceC,
                 "ChoiceD": temp.ChoiceD,
                 "CorrectAnswer": temp.CorrectAnswer
+            }
+            response.send(status);
+        }
+    });
+
+    app.get("/FindNewProblem", (request, response) => {
+        var temp = TakeNewProblemForUser(request.Username, request.Difficulty, request.ProblemType);
+        if(temp == -1){
+            const status = {
+                "Status ": -1
+            }
+            response.send(status);
+        }
+        else{
+            const status = {
+                "Status": 0,
+                "ProblemId": temp
             }
             response.send(status);
         }
