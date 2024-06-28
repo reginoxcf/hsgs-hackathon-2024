@@ -32,7 +32,7 @@ credits:
 - [x] login account
 - [ ] delete account
 - [x] add problem
-- [ ] submit problem
-- [ ] fetch problem
+- [x] submit problem
+- [x] fetch problem
 - [ ] show submissions
 
