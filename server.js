@@ -1,4 +1,5 @@
 //const { query } = require('express');
+const API_KEY = 'YOUR-OPENROUTER-API-KEY-HERE'
 const { query } = require('express');
 const crypto = require('crypto');
 var mydb = require('mysql');
@@ -162,9 +163,229 @@ async function CreateNewSubmission(StudentUsername){
 /**/
 /*The "dangerous" boundary: All functions below haven't been tested (or even coded) yet*/ 
 /**/
+
+// Math
+function genRandomSubject() {
+    let subj = ['linear equation', 'system of linear equations', 'inequalities', 'system of inequalities',
+    'ratios, rates, proportional relationships', 'units and rates', 'interpret one- and two-variable data',
+    'geometry problem of perimeter, area, volume', 'angles and triangles', 'trigonometry', 'circles',
+    'word problem', 'polynomial', 'intersection point of 2 lines', 'x-intercept', 'y-intercept', 'probability']
+    for (var i = subj.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var temp = subj[i];
+        subj[i] = subj[j];
+        subj[j] = temp;
+    }
+    return subj[Math.floor(Math.random()*subj.length)]
+}
+async function getRandomSatMultipleChoiceQuestion(difficulty) {
+    const prompt = `Generate a random SAT math question of difficulty level ${difficulty}/10 about ${genRandomSubject()}. Provide 4 multiple choices A), B), C), D) so that there is exactly one correct answer without explanation. Ensure the mathematical operations follow standard arithmetic rules (PEMDAS/BODMAS). Clearly label the correct answer after "Answer: ". The format should be:
+Question: [your question here]
+A) [option A]
+B) [option B]
+C) [option C]
+D) [option D]
+Answer: [correct option]`;
+
+    try {
+        const response = await fetch('https://openrouter.ai/api/v1/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${API_KEY}`, // Replace with your actual API key
+            },
+            body: JSON.stringify({
+                model: 'openai/gpt-4o', // Ensure this model is suitable and available
+                prompt: prompt,
+                max_tokens: 10000000,
+                temperature: 0.4,
+            }),
+        });
+        const data = await response.json();
+        const question = data.choices[0].text.trim();
+        return question;
+    } catch (error) {
+        console.error('Error fetching data from OpenAI API:', error);
+        return 'Failed to fetch question. Please try again later.';
+    }
+}
+
+function getAnswer(question) {
+    const answerRegex = /Answer:\s*([A-D])/; // Regex to find "Answer: X"
+    const match = question.match(answerRegex);
+    if (match) {
+        const answer = match[1];
+        const options = ['A', 'B', 'C', 'D'];
+        if (options.includes(answer)) {
+            return answer;
+        }
+    }
+    return 'Answer not found or incorrect format';
+}
+function extractChoices(question) {
+    const choices = {};
+    const choiceRegex = /([A-D])\)\s*([^A-D]+)/g;
+    let match;
+
+    while ((match = choiceRegex.exec(question)) !== null) {
+        choices[match[1]] = match[2].trim();
+    }
+
+    return choices;
+}
+// End of Math
+
+// English
+async function GenerateQuestion(difficulty, QuestionType) {
+    //Generate Question
+    console.log(QuestionType);
+    console.log("Difficulty: " + difficulty + "/10");
+    let ParagraphQuery = "Generate one digital SAT paragraph of about 200 words (without answers,choices,or anything, just the paragraph) with the type " + QuestionType + " with a difficulty of " + difficulty + "/10";
+    const message = [
+      {"role": "system", "content": "Be descriptive and clear, make sure to have everything that a digital SAT question needs and be sure to have 4 choices and exactly one single correct answer, add ('A)' before choice A, 'B)' before choice B, and similar to choice C and D) and DON'T ADD ANY EXTRA TEXT/WORD NOT RELATED TO THE SAT QUESTION"},
+      {"role": "user", "content": ParagraphQuery}
+    ];
+    const fetchParagraph = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        "model": "meta-llama/llama-3-70b-instruct",
+        "messages": message
+      })
+    });
+    const ParagraphJSON = await fetchParagraph.json();
+    let GeneratedParagraph = ParagraphJSON.choices[0].message.content;
+    message.push({"role": "assistant", "content": GeneratedParagraph});
+    //Fetch question
+    message.push({"role":"user","content": "Generate a question to the paragraph above (only the question, without the choices, ONLY the question)"});
+    const fetchQuestion = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          "model": "meta-llama/llama-3-70b-instruct",
+          "messages": message
+        })
+      });
+    const QuestionJSON = await fetchQuestion.json();
+    let MainQuestion = QuestionJSON.choices[0].message.content;
+    message.push({"role": "assistant", "content": MainQuestion});
+    //Generate choice A
+    message.push({"role":"user","content": "Give me choice A of the question above"});
+    const fetchChoiceA = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          "model": "meta-llama/llama-3-70b-instruct",
+          "messages": message
+        })
+      });
+    const choiceA_JSON = await fetchChoiceA.json();
+    let choiceA = choiceA_JSON.choices[0].message.content;
+    message.push({"role": "assistant", "content": choiceA});
+    //Generate choice B
+    message.push({"role":"user","content": "Give me choice B of the question above"});
+    const fetchChoiceB = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          "model": "meta-llama/llama-3-70b-instruct",
+          "messages": message
+        })
+      });
+    const choiceB_JSON = await fetchChoiceB.json();
+    let choiceB = choiceB_JSON.choices[0].message.content;
+    message.push({"role": "assistant", "content": choiceB});
+    //Generate choice C
+    message.push({"role":"user","content": "Give me choice C of the question above"});
+    const fetchChoiceC = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          "model": "meta-llama/llama-3-70b-instruct",
+          "messages": message
+        })
+      });
+    const choiceC_JSON = await fetchChoiceC.json();
+    let choiceC = choiceC_JSON.choices[0].message.content;
+    message.push({"role": "assistant", "content": choiceC});
+    //Generate choice D
+    message.push({"role":"user","content": "Give me choice D of the question above"});
+    const fetchChoiceD = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          "model": "meta-llama/llama-3-70b-instruct",
+          "messages": message
+        })
+      });
+    const choiceD_JSON = await fetchChoiceD.json();
+    let choiceD = choiceD_JSON.choices[0].message.content;
+    message.push({"role": "assistant", "content": choiceD});
+    //Generate Answer & Explanation
+    message.push({"role": "user", "content": "Give me the answer to the question above in only 1 letter (A/B/C/D)"});
+    const fetchResultwithAnswer = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        "model": "meta-llama/llama-3-70b-instruct",
+        "messages": message
+      })
+    });
+    const AnswerJSON = await fetchResultwithAnswer.json();
+    let Answer = AnswerJSON.choices[0].message.content;
+    return [GeneratedParagraph,MainQuestion,choiceA,choiceB,choiceC,choiceD,Answer];
+}
+// End of English
+
+
 async function FetchNewProblem(Difficulty, ProblemType){
     /*This function is intentionally left blank, because we didn't have the code to fetch new problems from LLM yet*/
     /*For the server to run properly, this function should have something instead of nothing :)))*/
+    if (ProblemType == 'Math') {
+        let question = await getRandomSatMultipleChoiceQuestion(Difficulty)
+        const ans = getAnswer(question);
+        const choice = extractChoices(question)
+        AddProblem(Difficulty, ProblemType, question, choice['A'], choice['B'], choice['C'], choice['D'], ans)
+    } else {
+        const QuestionTypes = [
+            "words in context (example: what does the word ... in the text nearly mean and then give some other words and the student has to find the word with a similar meaning)", 
+            "central ideas and details",
+            "command of evidence (textual)",
+            "cross-text connections (given 2 paragraphs each paragraph with at least 75 words, how would the author of text 2 respond to text 1 or vice versa / what is the relationship between the two texts)",
+            "transitions (fill in the blank (only one blank) with the correct transition)", 
+            "which choice most logically completes the text",
+            "given a hypothesis, which answer (if accurate) is most likely to strengthen/weaken the hypothesis",
+            "main idea of the text",
+            "fill in the blank with the suitable word (make sure to have only one blank)",
+            "text structure and purpose"
+      
+        ];
+        for (let i=0;i<1;i++) {
+            let [satParagraph,Question,choiceA,choiceB,choiceC,choiceD,Answer] = await GenerateQuestion(Math.floor(Math.random()*6)+5,QuestionTypes[Math.floor(Math.random()*QuestionTypes.length)]);
+            AddProblem(Difficulty, ProblemType, satParagraph + '\n' + Question, choiceA, choiceB, choiceC, choiceD, Answer)
+        }
+    }
     return 0;
 }
 
@@ -217,8 +438,9 @@ async function CreateLinkBetweenProblemAndSubmission(SubmissionId, Difficulty, P
         default: NumberOfProblemInDatabase = result[0].HardMathProblemsCount; break;
     }
     if(ProblemId > NumberOfProblemInDatabase){
-        var NewProblem = FetchNewProblem(Difficulty, ProblemType); //Currently we shouldn't let this happen, because FetchNewProblem() isn't defined yet
-        AddProblem(NewProblem.Difficulty, NewProblem.ProblemType, NewProblem.ProblemDescription, NewProblem.ChoiceA, NewProblem.ChoiceB, NewProblem.ChoiceC, NewProblem.ChoiceD, NewProblem.CorrectAnswer);
+        // var NewProblem = FetchNewProblem(Difficulty, ProblemType); //Currently we shouldn't let this happen, because FetchNewProblem() isn't defined yet
+        // AddProblem(NewProblem.Difficulty, NewProblem.ProblemType, NewProblem.ProblemDescription, NewProblem.ChoiceA, NewProblem.ChoiceB, NewProblem.ChoiceC, NewProblem.ChoiceD, NewProblem.CorrectAnswer);
+        FetchNewProblem(Difficulty, ProblemType)
     }
     //Create link
     queryCode = `INSERT INTO ProblemSubmissionLink(SubmissionId, ProblemId, ProblemIndex, ProblemPoint, ProblemType, Module) VALUES (` + SubmissionId + `,` + ProblemId + `,` + ProblemIndex + `,` + ProblemPoint + `,"` + ProblemType + `","` + Module + `");`;
