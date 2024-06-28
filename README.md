@@ -11,6 +11,9 @@ hsgs hackathon project using [OpenRouter](https://openrouter.ai/)
 - [MySQL](https://dev.mysql.com/downloads/installer/) (Windows only, haven't figured how to run on Linux yet) 
 
 credits:
+- leader:
+  + dung
+  + maruser
 - backend:
   + [khanhphucscratch](https://github.com/khanhphucscratch)
   + [binminh01](https://github.com/binminh01)
