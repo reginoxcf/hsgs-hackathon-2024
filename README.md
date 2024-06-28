@@ -10,7 +10,18 @@ hsgs hackathon project using [OpenRouter](https://openrouter.ai/)
   + crypto 1.0.1+
 - [MySQL](https://dev.mysql.com/downloads/installer/) (Windows only, haven't figured how to run on Linux yet) 
 
-credits: everyone :))
+credits:
+- backend:
+  + [khanhphucscratch](https://github.com/khanhphucscratch)
+  + [binminh01](https://github.com/binminh01)
+  + thdh
+  + asunaa
+- frontend:
+  + [nathan4690](https://github.com/nathan4690)
+  + thdh
+- testing:
+  + me :))
+- everyone for helping :))
 
 # Features:
 
