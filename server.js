@@ -389,21 +389,9 @@ async function FetchNewProblem(Difficulty, ProblemType){
     return 0;
 }
 
-async function CreateLinkBetweenProblemAndSubmission(SubmissionId, Difficulty, ProblemType, ProblemIndex, ProblemPoint, Module){
-    //Check if submissionID is valid or not
-    var queryCode = `SELECT * FROM UserSubmissions WHERE SubmissionId = "` + SubmissionId + `";`;
-    try{
-        var result = await PromisedQuery(queryCode, "Error while finding submission (server error or invalid SubmissionId", "");
-    }
-    catch(err){
-        return -1; //Error
-    }
-    if(result.length == 0){
-        console.log("Error while finding submission (server error or invalid SubmissionId");
-        return -1; //Error
-    }
-    var username = result[0].StudentUsername;
-    //Calculate ProblemId (fetch new problem if neccessary)
+async function TakeNewProblemForUser(username, Difficulty, ProblemType)
+{
+    //Return the problemId
     var ProblemCategory = Difficulty + ProblemType + `ProblemsCount`;
     queryCode = `SELECT ` + ProblemCategory + ` FROM AccountInformation WHERE Username = "` + username + '";';
     var ProblemId = 1, NumberOfProblemInDatabase = 0;
@@ -438,13 +426,28 @@ async function CreateLinkBetweenProblemAndSubmission(SubmissionId, Difficulty, P
         default: NumberOfProblemInDatabase = result[0].HardMathProblemsCount; break;
     }
     if(ProblemId > NumberOfProblemInDatabase){
-        // var NewProblem = FetchNewProblem(Difficulty, ProblemType); //Currently we shouldn't let this happen, because FetchNewProblem() isn't defined yet
-        // AddProblem(NewProblem.Difficulty, NewProblem.ProblemType, NewProblem.ProblemDescription, NewProblem.ChoiceA, NewProblem.ChoiceB, NewProblem.ChoiceC, NewProblem.ChoiceD, NewProblem.CorrectAnswer);
-        FetchNewProblem(Difficulty, ProblemType)
+        FetchNewProblem(Difficulty, ProblemType);
     }
+    return ProblemId;
+}
+async function CreateLinkBetweenProblemAndSubmission(SubmissionId, Difficulty, ProblemType, ProblemIndex, ProblemPoint, Module){
+    //Check if submissionID is valid or not
+    var queryCode = `SELECT * FROM UserSubmissions WHERE SubmissionId = "` + SubmissionId + `";`;
+    try{
+        var result = await PromisedQuery(queryCode, "Error while finding submission (server error or invalid SubmissionId", "");
+    }
+    catch(err){
+        return -1; //Error
+    }
+    if(result.length == 0){
+        console.log("Error while finding submission (server error or invalid SubmissionId)");
+        return -1; //Error
+    }
+    var username = result[0].StudentUsername;
+    //Calculate ProblemId (fetch new problem if neccessary)
+    var ProblemId = TakeNewProblemForUser(username, Difficulty, ProblemType);
     //Create link
     queryCode = `INSERT INTO ProblemSubmissionLink(SubmissionId, ProblemId, ProblemIndex, ProblemPoint, ProblemType, Module) VALUES (` + SubmissionId + `,` + ProblemId + `,` + ProblemIndex + `,` + ProblemPoint + `,"` + ProblemType + `","` + Module + `");`;
-    // console.log(queryCode);
     try{
         let sus = await PromisedQuery(queryCode, "Server error while creating link", "Link created successfully");
     }
