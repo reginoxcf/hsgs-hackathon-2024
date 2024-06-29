@@ -7,7 +7,7 @@ const API_KEY = 'sk-or-v1-851b3627a9e23ff478a9c1209cd9c4e1fa55bf31fee3428561f6ea
 var myServer = mydb.createConnection({
     host: "localhost",
     user: "root",
-    password: "password" /*Write the database's password*/ 
+    password: "@haiPhuc1317" /*Write the database's password*/ 
 });
 
 myServer.connect(err => {
@@ -21,6 +21,7 @@ function PromisedQuery(queryString, ErrMessage, SuccessMessage) {
             myServer.query(queryString, function(err, result){
                 if(err){
                     console.log(ErrMessage);
+                    console.log(err);
                     reject(err);
                 }
                 else{
@@ -36,7 +37,7 @@ function PromisedQuery(queryString, ErrMessage, SuccessMessage) {
 }
 
 function HashFunction(input){
-    const hash = crypto.createHash('sha256').update(input).digest('hex');
+    const hash = crypto.createHash('sha256').update(input).digest('base64');
     return hash;
 }
 
@@ -66,6 +67,7 @@ async function CreateAccount(username, password){
     catch(err){
         return -1; //Error
     }
+    return 0;
 }
 
 async function LoginPasswordVerify(username, password){
@@ -639,7 +641,7 @@ function temporaryContainer()
         console.log("Request received");
         console.log(request.body.username, request.body.password)
         var temp = await CreateAccount(request.body.username, request.body.password)
-        console.log(temp);
+        console.log("A " + temp);
         const status = {
             "Status": temp
         };
@@ -767,5 +769,5 @@ async function main(){
     tmp = await CreateLinkBetweenProblemAndSubmission(1, "Easy", "Math", 1, 1, 1);
 }
 
-// temporaryContainer();
-main();
+temporaryContainer();
+//main();
