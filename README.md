@@ -18,7 +18,6 @@ credits:
   + [khanhphucscratch](https://github.com/khanhphucscratch)
   + [binminh01](https://github.com/binminh01)
   + thdh
-  + asunaa
 - frontend:
   + [nathan4690](https://github.com/nathan4690)
   + thdh
