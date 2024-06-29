@@ -2,7 +2,7 @@
 const { query } = require('express');
 const crypto = require('crypto');
 var mydb = require('mysql');
-const API_KEY = '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'
+const API_KEY = 'you_shall_not_pass'
 
 var myServer = mydb.createConnection({
     host: "localhost",
