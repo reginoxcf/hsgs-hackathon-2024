@@ -160,7 +160,7 @@ async function CreateNewSubmission(StudentUsername){
     catch(err){
         return -1; //Error
     }
-    return SubmissionId;
+    return SubmissionId[0]['COUNT(*)'];
 }
 // Math
 function genRandomSubject() {
