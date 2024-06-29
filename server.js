@@ -7,7 +7,7 @@ const API_KEY = 'sk-or-v1-851b3627a9e23ff478a9c1209cd9c4e1fa55bf31fee3428561f6ea
 var myServer = mydb.createConnection({
     host: "localhost",
     user: "root",
-    password: "@haiPhuc1317" /*Write the database's password*/ 
+    password: "password" /*Write the database's password*/ 
 });
 
 myServer.connect(err => {
