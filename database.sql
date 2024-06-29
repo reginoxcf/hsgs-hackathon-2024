@@ -12,7 +12,7 @@ CREATE TABLE GlobalInformation(
 CREATE TABLE AccountInformation(
 	Username                   VARCHAR(20)   NOT NULL,
     Registered_date            DATETIME      NOT NULL,
-    User_password              VARCHAR(40)   NOT NULL,
+    User_password              VARCHAR(50)   NOT NULL,
     EasyEnglishProblemsCount   INT           NOT NULL,
     MediumEnglishProblemsCount INT           NOT NULL,
 	HardEnglishProblemsCount   INT           NOT NULL,
@@ -54,13 +54,16 @@ CREATE TABLE SATproblems(
     PRIMARY KEY (ProblemId, Difficulty, ProblemType)
 );
 CREATE TABLE ProblemSubmissionLink(
-	SubmissionId       BIGINT                   NOT NULL,
-	ProblemId          BIGINT                   NOT NULL,
-    ProblemIndex       INT                      NOT NULL,
+	SubmissionId       BIGINT                          NOT NULL,
+	ProblemId          BIGINT                          NOT NULL,
+    ProblemIndex       INT                             NOT NULL,
     /*ProblemIndex: the index of that problem in a module*/
-    ProblemPoint       INT                      NOT NULL,
-    Module             ENUM('1', '2')           NOT NULL,
+    ProblemPoint       INT                             NOT NULL,
+    ProblemType        ENUM('English', 'Math')         NOT NULL,
+    ProblemDifficulty  ENUM('Easy', 'Medium', 'Hard')  NOT NULL,
+    Module             ENUM('1', '2')                  NOT NULL,
     UserAnswer         ENUM('A', 'B', 'C', 'D'), 
+    PRIMARY KEY (SubmissionId, ProblemIndex, ProblemType, Module), 
     FOREIGN KEY (SubmissionId)
 		REFERENCES UserSubmissions(SubmissionId)
         ON DELETE CASCADE
