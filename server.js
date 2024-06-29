@@ -1,8 +1,8 @@
 //const { query } = require('express');
-const API_KEY = 'YOUR-OPENROUTER-API-KEY-HERE'
 const { query } = require('express');
 const crypto = require('crypto');
 var mydb = require('mysql');
+const API_KEY = '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'
 
 var myServer = mydb.createConnection({
     host: "localhost",
@@ -11,7 +11,7 @@ var myServer = mydb.createConnection({
 });
 
 myServer.connect(err => {
-    if(err) console.log("Connection failed");
+    if(err) console.log(err);
     else console.log("Connected");
 });
 
@@ -160,10 +160,6 @@ async function CreateNewSubmission(StudentUsername){
     }
     return SubmissionId;
 }
-/**/
-/*The "dangerous" boundary: All functions below haven't been tested (or even coded) yet*/ 
-/**/
-
 // Math
 function genRandomSubject() {
     let subj = ['linear equation', 'system of linear equations', 'inequalities', 'system of inequalities',
@@ -252,7 +248,7 @@ async function GenerateQuestion(difficulty, QuestionType) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        "model": "meta-llama/llama-3-70b-instruct",
+        "model": "openai/gpt-4o",
         "messages": message
       })
     });
@@ -268,7 +264,7 @@ async function GenerateQuestion(difficulty, QuestionType) {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          "model": "meta-llama/llama-3-70b-instruct",
+          "model": "openai/gpt-4o",
           "messages": message
         })
       });
@@ -284,7 +280,7 @@ async function GenerateQuestion(difficulty, QuestionType) {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          "model": "meta-llama/llama-3-70b-instruct",
+          "model": "openai/gpt-4o",
           "messages": message
         })
       });
@@ -300,7 +296,7 @@ async function GenerateQuestion(difficulty, QuestionType) {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          "model": "meta-llama/llama-3-70b-instruct",
+          "model": "openai/gpt-4o",
           "messages": message
         })
       });
@@ -316,7 +312,7 @@ async function GenerateQuestion(difficulty, QuestionType) {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          "model": "meta-llama/llama-3-70b-instruct",
+          "model": "openai/gpt-4o",
           "messages": message
         })
       });
@@ -332,7 +328,7 @@ async function GenerateQuestion(difficulty, QuestionType) {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          "model": "meta-llama/llama-3-70b-instruct",
+          "model": "openai/gpt-4o",
           "messages": message
         })
       });
@@ -348,7 +344,7 @@ async function GenerateQuestion(difficulty, QuestionType) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        "model": "meta-llama/llama-3-70b-instruct",
+        "model": "openai/gpt-4o",
         "messages": message
       })
     });
@@ -387,6 +383,71 @@ async function FetchNewProblem(Difficulty, ProblemType){
         }
     }
     return 0;
+}
+
+async function CreateLinkBetweenProblemAndSubmission(SubmissionId, Difficulty, ProblemType, ProblemIndex, ProblemPoint, Module){
+    //Check if submissionID is valid or not
+    var queryCode = `SELECT * FROM UserSubmissions WHERE SubmissionId = "` + SubmissionId + `";`;
+    try{
+        var result = await PromisedQuery(queryCode, "Error while finding submission (server error or invalid SubmissionId", "");
+    }
+    catch(err){
+        return -1; //Error
+    }
+    if(result.length == 0){
+        console.log("Error while finding submission (server error or invalid SubmissionId");
+        return -1; //Error
+    }
+    var username = result[0].StudentUsername;
+    //Calculate ProblemId (fetch new problem if neccessary)
+    var ProblemCategory = Difficulty + ProblemType + `ProblemsCount`;
+    queryCode = `SELECT ` + ProblemCategory + ` FROM AccountInformation WHERE Username = "` + username + '";';
+    var ProblemId = 1, NumberOfProblemInDatabase = 0;
+    try{
+        result = await PromisedQuery(queryCode, "Global information table error while creating link", "");
+    }
+    catch(err){
+        return -1; //Error
+    }
+    switch (ProblemCategory){
+        case 'EasyEnglishProblemsCount': ProblemId += result[0].EasyEnglishProblemsCount; break;
+        case 'MediumEnglishProblemsCount': ProblemId += result[0].MediumEnglishProblemsCount; break;
+        case 'HardEnglishProblemsCount': ProblemId += result[0].HardEnglishProblemsCount; break;
+        case 'EasyMathProblemsCount': ProblemId += result[0].EasyMathProblemsCount; break;
+        case 'MediumMathProblemsCount': ProblemId += result[0].MediumMathProblemsCount; break;
+        default: ProblemId += result[0].HardMathProblemsCount; break;
+    }
+    //Calculate the number of problems (in that category) in the database
+    queryCode = `SELECT ` + ProblemCategory + ` FROM GlobalInformation;`;
+    try{
+        result = await PromisedQuery(queryCode, "Global information table error while creating link", "");
+    }
+    catch(err){
+        return -1; //Error
+    }
+    switch (ProblemCategory){
+        case 'EasyEnglishProblemsCount': NumberOfProblemInDatabase = result[0].EasyEnglishProblemsCount; break;
+        case 'MediumEnglishProblemsCount': NumberOfProblemInDatabase = result[0].MediumEnglishProblemsCount; break;
+        case 'HardEnglishProblemsCount': NumberOfProblemInDatabase = result[0].HardEnglishProblemsCount; break;
+        case 'EasyMathProblemsCount': NumberOfProblemInDatabase = result[0].EasyMathProblemsCount; break;
+        case 'MediumMathProblemsCount': NumberOfProblemInDatabase = result[0].MediumMathProblemsCount; break;
+        default: NumberOfProblemInDatabase = result[0].HardMathProblemsCount; break;
+    }
+    if(ProblemId > NumberOfProblemInDatabase){
+        // var NewProblem = FetchNewProblem(Difficulty, ProblemType); //Currently we shouldn't let this happen, because FetchNewProblem() isn't defined yet
+        // AddProblem(NewProblem.Difficulty, NewProblem.ProblemType, NewProblem.ProblemDescription, NewProblem.ChoiceA, NewProblem.ChoiceB, NewProblem.ChoiceC, NewProblem.ChoiceD, NewProblem.CorrectAnswer);
+        FetchNewProblem(Difficulty, ProblemType)
+    }
+    //Create link
+    queryCode = `INSERT INTO ProblemSubmissionLink(SubmissionId, ProblemId, ProblemIndex, ProblemPoint, ProblemType, Module) VALUES (` + SubmissionId + `,` + ProblemId + `,` + ProblemIndex + `,` + ProblemPoint + `,"` + ProblemType + `","` + Module + `");`;
+    // console.log(queryCode);
+    try{
+        let sus = await PromisedQuery(queryCode, "Server error while creating link", "Link created successfully");
+    }
+    catch(err){
+        return -1; //Error
+    }
+    return ProblemId;
 }
 
 async function TakeNewProblemForUser(username, Difficulty, ProblemType)
@@ -431,6 +492,8 @@ async function TakeNewProblemForUser(username, Difficulty, ProblemType)
     return ProblemId;
 }
 async function CreateLinkBetweenProblemAndSubmission(SubmissionId, Difficulty, ProblemType, ProblemIndex, ProblemPoint, Module){
+    //Need to test a little bit more
+    
     //Check if submissionID is valid or not
     var queryCode = `SELECT * FROM UserSubmissions WHERE SubmissionId = "` + SubmissionId + `";`;
     try{
@@ -447,7 +510,7 @@ async function CreateLinkBetweenProblemAndSubmission(SubmissionId, Difficulty, P
     //Calculate ProblemId (fetch new problem if neccessary)
     var ProblemId = TakeNewProblemForUser(username, Difficulty, ProblemType);
     //Create link
-    queryCode = `INSERT INTO ProblemSubmissionLink(SubmissionId, ProblemId, ProblemIndex, ProblemPoint, ProblemType, Module) VALUES (` + SubmissionId + `,` + ProblemId + `,` + ProblemIndex + `,` + ProblemPoint + `,"` + ProblemType + `","` + Module + `");`;
+    queryCode = `INSERT INTO ProblemSubmissionLink(SubmissionId, ProblemId, ProblemIndex, ProblemPoint, ProblemType, ProblemDifficulty, Module) VALUES (` + SubmissionId + `,` + ProblemId + `,` + ProblemIndex + `,` + ProblemPoint + `,"` + ProblemType + `","` + Difficulty + `","` + Module + `");`;
     try{
         let sus = await PromisedQuery(queryCode, "Server error while creating link", "Link created successfully");
     }
@@ -480,6 +543,19 @@ async function EditUserAnswer(SubmissionId, ProblemIndex, ProblemType, Module, U
     return 0;
 }
 
+async function QueryProblem(ProblemId, Difficulty, ProblemType){
+    //Returning the problem itself
+    queryCode = `SELECT * FROM SATproblems WHERE ProblemId = ` + ProblemId + `, Difficulty = "` + Difficulty + `", ProblemType = "` + ProblemType + `";`;
+    try{
+        result = await PromisedQuery(queryCode, "Server error while finding problem", "");
+    }
+    catch(err){
+        return -1; //Error
+    }
+    if(result.length == 0) return -1;
+    return result;
+}
+
 async function ChangeSubmissionPart(SubmissionId)
 {
     //Check if the Id is valid or not. Check if the submission is in part 6 or not
@@ -509,43 +585,86 @@ async function ChangeSubmissionPart(SubmissionId)
     return 0;
 }
 
+async function GradeUserAnswer(SubmissionId, ProblemType, Module){
+    //Haven't tested yet
+
+    //Check if the SubmissionId is valid or not
+    var queryCode = `SELECT * FROM UserSubmissions WHERE SubmissionId = "` + SubmissionId + `";`;
+    try{
+        let sus = await PromisedQuery(queryCode, "Error while finding submission (server error or invalid SubmissionId", "");
+    }
+    catch(err){
+        return -1; //Error
+    }
+    if(result.length == 0){
+        console.log("Error while finding submission (server error or invalid SubmissionId)");
+        return -1; //Error
+    }
+    //Take all links and grade them
+    var TotalPoint = 0;
+    var queryCode = `SELECT * FROM ProblemSubmissionLink WHERE SubmissionId = "` + SubmissionId + `", ProblemType = "` + ProblemType + `", Module = "` + Module + `";`;
+    try{
+        var result = await PromisedQuery(queryCode, "Error while finding submissionLinks (server error or invalid parameters", "");
+    }
+    catch(err){
+        return -1; //Error
+    }
+    for(let i = 0; i < result.length; i++){
+        let CorrespondingProblem = QueryProblem(result[i].ProblemId, result[i].ProblemDifficulty, result[i].ProblemType);
+        if(CorrespondingProblem == -1){
+            console.log("Grading system error");
+            return -1; //Error;
+        }
+        if(result[i].UserAnswer == CorrespondingProblem.CorrectAnswer) TotalPoint += result[i].ProblemPoint;
+    }
+    return TotalPoint;
+}
+
 function temporaryContainer()
 {
     __init();
     const express = require(`express`);
     const app = express();
     app.use(express.json());
-    const PORT = process.env.PORT || 1301;
+    const cors = require("cors")
+    app.use(cors())
+    const PORT = process.env.PORT || 1301; 
     app.listen(PORT, () => {
-        console.log("Listening to port: " + PORT);
+        console.log("Listening to port: " + PORT); 
     });
 
-    app.get("/AddAccountToDatabse", (request, response) =>{
-        var temp = CreateAccount(request.username, request.password);
+    app.post("/", (req, res) => res.send("üwu"))
+
+    app.post("/AddAccountToDatabase", async (request, response) =>{
+        console.log("Request received");
+        console.log(request.body.username, request.body.password)
+        var temp = await CreateAccount(request.body.username, request.body.password)
+        console.log(temp);
         const status = {
             "Status": temp
         };
         response.send(status);
     });
 
-    app.get("/LoginPasswordVerify", (request, response) => {
-        var temp = LoginPasswordVerify(request.username, request.password);
+    app.post("/LoginPasswordVerify", async (request, response) => {
+        var temp = await LoginPasswordVerify(request.body.username, request.body.password)
+        // var temp = LoginPasswordVerify(request.body.username, request.body.password);
         const status = {
             "Status": temp
         };
         response.send(status);
     });
 
-    app.get("/CreateNewSubmission", (request, response) => {
-        var temp = CreateNewSubmission(request.username);
+    app.post("/CreateNewSubmission", async (request, response) => {
+        var temp = await CreateNewSubmission(request.body.username);
         const status = {
             "ReturnValue": temp
         }
         response.send(status);
     });
 
-    app.get("/GenerateProblemForSubmission", (request, response) => {
-        var temp = CreateLinkBetweenProblemAndSubmission(request.SubmissionId, request.Difficulty, request.ProblemType, request.ProblemIndex, request.ProblemPoint, request.Module);
+    app.post("/GenerateProblemForSubmission", async (request, response) => {
+        var temp = await CreateLinkBetweenProblemAndSubmission(request.body.SubmissionId, request.body.Difficulty, request.body.ProblemType, request.body.ProblemIndex, request.body.ProblemPoint, request.body.Module);
         if(temp == -1){
             const status = {
                 "Status": -1
@@ -561,24 +680,58 @@ function temporaryContainer()
         }
     });
 
-    app.get("/NextPart", (request, response) =>  {
-        var temp = ChangeSubmissionPart(request.SubmissionId);
+    app.get("/FindNewProblem", async (request, response) => {
+        var temp = await TakeNewProblemForUser(request.body.Username, request.body.Difficulty, request.body.ProblemType);
+        if(temp == -1){
+            const status = {
+                "Status ": -1
+            }
+            response.send(status);
+        }
+        else{
+            const status = {
+                "Status": 0,
+                "ProblemId": temp
+            }
+            response.send(status);
+        }
+    });
+
+    app.get("/GradeModule", async (request, response) => {
+        var temp = await GradeUserAnswer(request.body.SubmissionId, request.body.ProblemType, request.body.Module);
+        if(temp == -1){
+            const status = {
+                "Status ": -1
+            }
+            response.send(status);
+        }
+        else{
+            const status = {
+                "Status": 0,
+                "Score": temp
+            }
+            response.send(status);
+        }
+    });
+
+    app.post("/NextPart", async (request, response) =>  {
+        var temp = await ChangeSubmissionPart(request.body.SubmissionId);
         const status = {
             "Status": temp
         };
         response.send(status);
     });
 
-    app.get("/EditUserAnswer", (request, response) => {
-        var temp = EditUserAnswer(request.SubmissionId, request.ProblemIndex, request.ProblemType, request.Module, request.UserAnswer);
+    app.post("/EditUserAnswer", async (request, response) => {
+        var temp = await EditUserAnswer(request.body.SubmissionId, request.body.ProblemIndex, request.body.ProblemType, request.body.Module, request.body.UserAnswer);
         const status = {
             "Status": temp
         };
         response.send(status);
     });
 
-    app.get("/ProblemInfo", (request, response) => {
-        var temp = QueryProblem(request.ProblemId, request.Difficulty, request.ProblemType);
+    app.post("/ProblemInfo", async (request, response) => {
+        var temp = await QueryProblem(request.body.ProblemId, request.body.Difficulty, request.body.ProblemType);
         if(temp == -1){
             const status = {
                 "Status": -1
@@ -601,23 +754,6 @@ function temporaryContainer()
             response.send(status);
         }
     });
-
-    app.get("/FindNewProblem", (request, response) => {
-        var temp = TakeNewProblemForUser(request.Username, request.Difficulty, request.ProblemType);
-        if(temp == -1){
-            const status = {
-                "Status ": -1
-            }
-            response.send(status);
-        }
-        else{
-            const status = {
-                "Status": 0,
-                "ProblemId": temp
-            }
-            response.send(status);
-        }
-    });
 }
 
 async function main(){
@@ -631,4 +767,5 @@ async function main(){
     tmp = await CreateLinkBetweenProblemAndSubmission(1, "Easy", "Math", 1, 1, 1);
 }
 
+// temporaryContainer();
 main();
